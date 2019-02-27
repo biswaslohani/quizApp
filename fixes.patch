@@ -1,0 +1,113 @@
+Index: QuizApplication/grails-app/conf/UrlMappings.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- QuizApplication/grails-app/conf/UrlMappings.groovy	(revision fdced92913f400067fb81f94213e8c1667788db3)
++++ QuizApplication/grails-app/conf/UrlMappings.groovy	(revision 9d172fbc91a75a3510d7c54acc79f6834df462b5)
+@@ -3,18 +3,25 @@
+ class UrlMappings {
+ 
+   static mappings = {
+-    "/$controller/$action?/$id?(.$format)?" {
++    /*"/$controller/$action?/$id?(.$format)?" {
+       constraints {
+         // apply constraints here
+       }
+-    }
++    }*/
+     "/rest/$controller/$id?"(parseRequest: true) {
+       action = [GET: "show", PUT: "update", DELETE: "delete", POST: "save"]
+       constraints {
+         id matches: /^[a-zA-Z0-9]+$/
+       }
+     }
+-    "/rest/quiz/$id/questions/$qid?"(parseRequest: true, controller: QuizQuestionController) {
++    /*"/rest/quiz/$id/question/$qid?"(parseRequest: true, controller: QuizQuestionController) {
++      action = [GET: "show", PUT: "update", DELETE: "delete", POST: "save"]
++      constraints {
++        id matches: /^[a-zA-Z0-9]+$/
++        qid matches: /^[a-zA-Z0-9]+$/
++      }
++    }*/
++    "/rest/quiz/$id/$controller/$qid?"(parseRequest: true) {
+       action = [GET: "show", PUT: "update", DELETE: "delete", POST: "save"]
+       constraints {
+         id matches: /^[a-zA-Z0-9]+$/
+Index: QuizApplication/grails-app/services/com/abc/QuizQuestionService.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- QuizApplication/grails-app/services/com/abc/QuizQuestionService.groovy	(revision fdced92913f400067fb81f94213e8c1667788db3)
++++ QuizApplication/grails-app/services/com/abc/QuizQuestionService.groovy	(revision 9d172fbc91a75a3510d7c54acc79f6834df462b5)
+@@ -20,7 +20,7 @@
+   def getQuestionListByCondition(String include, Quiz quiz) {
+     boolean isConditionPresent = include != null && ( include == "all" || include == "active")
+     def qList = isConditionPresent ? listQuestionsByCondition(quiz, include) : listQuestionsByRandom(quiz)
+-    qList.collect { convertToQuestionCmd(it) }
++    qList//.collect { convertToQuestionCmd(it) }
+   }
+ 
+   def buildQuizQuestionCreateCmd(def jsonObj) {
+@@ -149,14 +149,16 @@
+ 
+   def convertToQuestionCmd(QuizQuestion quizQuestion) {
+     QuestionCmd questionCmd = new QuestionCmd()
+-    questionCmd.guId = quizQuestion.id
+-    questionCmd.name = quizQuestion.name
+-    questionCmd.questionType = quizQuestion.questionType.toString()
+-    questionCmd.isActive = quizQuestion.isActive
+-    questionCmd.optionsList = quizQuestion.options.collect { convertToOptionCmd(it) }
+-    questionCmd.answer = convertToOptionCmd(quizQuestion.answer)
+-    questionCmd.dateCreated = CanaryUtils.toEpoch(quizQuestion.dateCreated)
+-    questionCmd.lastUpdated = CanaryUtils.toEpoch(quizQuestion.lastUpdated)
++    if(quizQuestion){
++      questionCmd.guId = quizQuestion.id
++      questionCmd.name = quizQuestion.name
++      questionCmd.questionType = quizQuestion.questionType.toString()
++      questionCmd.isActive = quizQuestion.isActive
++      questionCmd.optionsList = quizQuestion.options.collect { convertToOptionCmd(it) }
++      questionCmd.answer = convertToOptionCmd(quizQuestion.answer)
++      questionCmd.dateCreated = CanaryUtils.toEpoch(quizQuestion.dateCreated)
++      questionCmd.lastUpdated = CanaryUtils.toEpoch(quizQuestion.lastUpdated)
++    }
+     questionCmd
+   }
+ 
+Index: QuizApplication/grails-app/services/com/abc/QuizService.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- QuizApplication/grails-app/services/com/abc/QuizService.groovy	(revision fdced92913f400067fb81f94213e8c1667788db3)
++++ QuizApplication/grails-app/services/com/abc/QuizService.groovy	(revision 9d172fbc91a75a3510d7c54acc79f6834df462b5)
+@@ -11,7 +11,7 @@
+       throw new Exception("no quiz found")
+     }
+     def quiz = Quiz.findByIdAndTenant(guId, tenant)
+-    if(quiz) {
++    if(!quiz) {
+       throw new Exception("no quiz found")
+     }
+     quiz
+@@ -35,7 +35,7 @@
+       and {
+         eq("tenant", tenant)
+         if (!isConditionAbsent) {
+-          eq("isQuizActive", !isQuizInActive)
++          eq("isActive", !isQuizInActive)
+         }
+       }
+     }
+@@ -93,9 +93,7 @@
+     quizDetailCmd.desc = quiz.desc
+     quizDetailCmd.isActive = quiz.isActive
+ 
+-    quizDetailCmd.questionList = quiz.quizQuestions.collect {
+-      quizQuestionService.convertToQuestionCmd(it)
+-    }
++    quizDetailCmd.questionList = quizQuestionService.getQuestionList(quiz, null) //TODO if includes is needed then it needs to be passed from controller
+     quizDetailCmd.dateCreated = CanaryUtils.toEpoch(quiz.dateCreated)
+     quizDetailCmd.lastUpdated = CanaryUtils.toEpoch(quiz.lastUpdated)
+     quizDetailCmd
