@@ -36,7 +36,7 @@ class QuizQuestionService {
 
   def buildOptionCmd(def jsonOption) {
     QuizQuestionOptionCmd cmd = new QuizQuestionOptionCmd()
-    cmd.guId = CanaryUtils.getStringProperty(jsonOption.guId)
+    cmd.guId = CanaryUtils.getStringProperty(jsonOption, "guId")
     cmd.name = CanaryUtils.getStringProperty(jsonOption, "name")
     cmd
   }
@@ -90,11 +90,13 @@ class QuizQuestionService {
     QuizQuestion question = new QuizQuestion()
     question.isActive = cmd.isActive
     question.name = cmd.name
+    question.questionType = cmd.questionType
     question.quiz = quiz
-    question.save()
+    question.save(failOnError: true)
+    question.answer = createQuestionOption(cmd.answer, question)
 
     cmd.optionsList.each {
-      question.addToOptions(createQuestionOption(it))
+      question.addToOptions(createQuestionOption(it,question))
     }
     question.save()
     convertToQuestionCmd(question)
@@ -107,7 +109,7 @@ class QuizQuestionService {
     }
     question.isActive = cmd.isActive
     question.name = cmd.name
-    question.options = cmd.optionsList.each {
+    question.options = cmd.optionsList.collect {
       updateQuestionOption(question, it)
     }
     question.answer = updateQuestionOption(question, cmd.answer)
@@ -116,23 +118,27 @@ class QuizQuestionService {
   }
 
   private updateQuestionOption(QuizQuestion question, QuizQuestionOptionCmd cmd) {
+    QuizQuestionOption option
     if(cmd && cmd.guId) {
-      QuizQuestionOption option = QuizQuestionOption.findByIdAndQuizQuestion(cmd.guId, question)
+      option = QuizQuestionOption.findByIdAndQuizQuestion(cmd.guId, question)
       if(!option) {
         throw new Exception("Invalid question option found")
       }
       option.name = cmd.name
-      option.save()
+      option.save(failOnError: true)
     } else {
-      QuizQuestionOption option = new QuizQuestionOption(quizQuestion: question)
+      option = new QuizQuestionOption(quizQuestion: question)
       option.name = cmd.name
-      option.save()
+      option.save(failOnError: true)
     }
+    option
   }
 
-  private def createQuestionOption(QuizQuestionOptionCmd cmd) {
+  private def createQuestionOption(QuizQuestionOptionCmd cmd, QuizQuestion question) {
     QuizQuestionOption option = new QuizQuestionOption()
     option.name = cmd.name
+    option.quizQuestion = question
+    option.save(failOnError: true)
     option
   }
 

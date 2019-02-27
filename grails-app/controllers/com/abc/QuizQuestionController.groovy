@@ -22,7 +22,7 @@ class QuizQuestionController {
   def save = {
     def jsonObj = request.JSON
     QuestionCmd questionCmd = quizQuestionService.buildQuizQuestionCreateCmd(jsonObj)
-    def result = quizQuestionService.createQuestion(questionCmd, params.quiz, params.tenant)
+    def result = quizQuestionService.createQuestion(questionCmd, params.quiz)
     render result as JSON
   }
 
@@ -32,7 +32,7 @@ class QuizQuestionController {
     }
     def jsonObj = request.JSON
     QuestionCmd questionCmd = quizQuestionService.buildQuizQuestionCreateCmd(jsonObj)
-    def updateQuestion = quizQuestionService.updateQuestion(questionCmd, params.qid, params.quiz)
+    def updateQuestion = quizQuestionService.updateQuestion(questionCmd, params.long("qid"), params.quiz)
     render updateQuestion as JSON
   }
 
